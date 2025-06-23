@@ -1,12 +1,10 @@
 <?php
-// Configuración CORS mejorada
 header("Access-Control-Allow-Origin: http://localhost:5173");
 header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
 header("Access-Control-Allow-Headers: Authorization, Content-Type, Accept, Origin");
 header("Access-Control-Allow-Credentials: true");
 header("Access-Control-Max-Age: 3600");
 
-// Manejar solicitud OPTIONS inmediatamente
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     header("Content-Length: 0");
     header("Content-Type: text/plain");
@@ -14,133 +12,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit(0);
 }
 
-// Obtener la URL completa y parsear las rutas
-$requestUri = $_SERVER['REQUEST_URI']; // Obtén la URL completa
-$path = parse_url($requestUri, PHP_URL_PATH); // Extrae solo el path
-$arrayRutas = explode('/', trim($path, '/')); // Divide la URL en partes
+function verificarCredenciales() {
+    if (!isset($_SERVER['PHP_AUTH_USER']) || !isset($_SERVER['PHP_AUTH_PW'])) {
+        http_response_code(401);
+        echo json_encode(["status" => 401, "detalle" => "Credenciales no proporcionadas"]);
+        exit;
+    }
 
-// Eliminar elementos vacíos y reindexar
+    $email = $_SERVER['PHP_AUTH_USER'];
+    $password = $_SERVER['PHP_AUTH_PW'];
+
+    $cliente = ModeloClientes::buscarPorEmail("clientes", $email);
+
+    if (!$cliente || !password_verify($password, $cliente['llave_secreta'])) {
+        http_response_code(401);
+        echo json_encode(["status" => 401, "detalle" => "Credenciales inválidas"]);
+        exit;
+    }
+
+    return $cliente;
+}
+
+$requestUri = $_SERVER['REQUEST_URI'];
+$path = parse_url($requestUri, PHP_URL_PATH);
+$arrayRutas = explode('/', trim($path, '/'));
+
 if (is_array($arrayRutas)) {
     $arrayRutas = array_values(array_filter($arrayRutas));
 } else {
     $arrayRutas = [];
 }
-// echo "<pre>"; print_r($arrayRutas); echo "</pre>";
 
-if(isset($_GET["pagina"])&& is_numeric(($_GET['pagina']))){
-    $arrayRutas = array_values(array_filter($arrayRutas));
-    
-    $cursos= new ControladorCursos();
-    $cursos->index($_GET["pagina"]);
-    
-}
-
-else if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($arrayRutas[1]) && $arrayRutas[1] === 'clientes') {
-    
-    $datos = json_decode(file_get_contents('php://input'), true);
-    
-    $controladorClientes = new ControladorClientes();
-    $controladorClientes->create($datos);
-    
-    return;
-}
-#Cursos CRUD
-else if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($arrayRutas[1]) && $arrayRutas[1] === 'cursos') {
-    
-    $datos = json_decode(file_get_contents('php://input'), true);
-    
-    $controladorClientes = new ControladorCursos();
-    $controladorClientes->create($datos);
-    
-    return;
-}
-
-else if ($_SERVER['REQUEST_METHOD'] === 'PUT' && isset($arrayRutas[1]) && $arrayRutas[1] === 'cursos' && isset($arrayRutas[2])) {
-    
-    $id = intval($arrayRutas[2]);
-    $datos = json_decode(file_get_contents('php://input'), true);
-    
-    if(empty($datos)) {
-        echo json_encode(array(
-            "status" => 400,
-            "detalle" => "Datos de actualización no recibidos"
-        ), true);
-        return;
-    }
-    
-    $controladorCursos = new ControladorCursos();
-    $controladorCursos->update($id, $datos);
-    
-    return;
-}
-
-else if ($_SERVER['REQUEST_METHOD'] === 'DELETE' && isset($arrayRutas[1]) && $arrayRutas[1] === 'cursos' && isset($arrayRutas[2])) {
-    $id = intval($arrayRutas[2]);
-    $controladorCursos = new ControladorCursos();
-    $controladorCursos->delete($id);
-    return;
-}
-
-else if (isset($arrayRutas[1]) && $arrayRutas[1] == "cursos" && isset($arrayRutas[2]) ) {
-    
-    $id = intval($arrayRutas[2]);
-    
-    $cursos = new ControladorCursos();
-    $cursos->show($id);
-    return;
-}
-############# ORDENES ############################
-// GET /ordenes
-else if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($arrayRutas[1]) && $arrayRutas[1] === 'ordenes' && !isset($arrayRutas[2])) {
-    $controlador = new ControladorOrdenes();
-    $controlador->index();
-    return;
-}
-
-else if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($arrayRutas[1]) && $arrayRutas[1] === 'ordenes') {
-    
-    $datos = json_decode(file_get_contents('php://input'), true);
-    
-    $controladorClientes = new ControladorOrdenes();
-    $controladorClientes->create($datos);
-    
-    return;
-}
-
-// GET /ordenes/{id}
-else if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($arrayRutas[1]) && $arrayRutas[1] === 'ordenes' && isset($arrayRutas[2])) {
-    $id = intval($arrayRutas[2]);
-    $controlador = new ControladorOrdenes();
-    $controlador->show($id);
-    return;
-}
-
-// PUT /ordenes/{id}
-else if ($_SERVER['REQUEST_METHOD'] === 'PUT' && isset($arrayRutas[1]) && $arrayRutas[1] === 'ordenes' && isset($arrayRutas[2])) {
-    $id = intval($arrayRutas[2]);
-    $datos = json_decode(file_get_contents('php://input'), true);
-    $controlador = new ControladorOrdenes();
-    $controlador->update($id, $datos);
-    return;
-}
-
-// DELETE /ordenes/{id}
-else if ($_SERVER['REQUEST_METHOD'] === 'DELETE' && isset($arrayRutas[1]) && $arrayRutas[1] === 'ordenes' && isset($arrayRutas[2])) {
-    $id = intval($arrayRutas[2]);
-    $controlador = new ControladorOrdenes();
-    $controlador->delete($id);
-    return;
-}
-
-// ############################## LOGIN
-else if ($_SERVER['REQUEST_METHOD'] === 'POST' && $arrayRutas[1] === 'login') {
+// Login endpoint (sin autenticación)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($arrayRutas[1]) && $arrayRutas[1] === 'login') {
     $datos = json_decode(file_get_contents('php://input'), true);
     
     if (!isset($datos['email']) || !isset($datos['llave_secreta'])) {
-        echo json_encode(array(
+        echo json_encode([
             "status" => 400,
             "detalle" => "Email y contraseña requeridos"
-        ));
+        ]);
         return;
     }
 
@@ -148,8 +59,92 @@ else if ($_SERVER['REQUEST_METHOD'] === 'POST' && $arrayRutas[1] === 'login') {
     $controlador->login($datos['email'], $datos['llave_secreta']);
     return;
 }
-#########################################
-else{
-    if(count(array_filter($arrayRutas))==2) {
-    }
+
+// Creación de cliente (sin autenticación)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($arrayRutas[1]) && $arrayRutas[1] === 'clientes') {
+    $datos = json_decode(file_get_contents('php://input'), true);
+    $controladorClientes = new ControladorClientes();
+    $controladorClientes->create($datos);
+    return;
 }
+
+// Para todas las demás rutas, requerir autenticación
+$cliente = verificarCredenciales();
+
+// Rutas protegidas
+if (isset($_GET["pagina"]) && is_numeric($_GET['pagina'])) {
+    $cursos = new ControladorCursos();
+    $cursos->index($_GET["pagina"]);
+    return;
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($arrayRutas[1]) && $arrayRutas[1] === 'cursos') {
+    $datos = json_decode(file_get_contents('php://input'), true);
+    $controladorCursos = new ControladorCursos();
+    $controladorCursos->create($datos, $cliente);
+    return;
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'PUT' && isset($arrayRutas[1]) && $arrayRutas[1] === 'cursos' && isset($arrayRutas[2])) {
+    $id = intval($arrayRutas[2]);
+    $datos = json_decode(file_get_contents('php://input'), true);
+    $controladorCursos = new ControladorCursos();
+    $controladorCursos->update($id, $datos, $cliente);
+    return;
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'DELETE' && isset($arrayRutas[1]) && $arrayRutas[1] === 'cursos' && isset($arrayRutas[2])) {
+    $id = intval($arrayRutas[2]);
+    $controladorCursos = new ControladorCursos();
+    $controladorCursos->delete($id, $cliente);
+    return;
+}
+
+if (isset($arrayRutas[1]) && $arrayRutas[1] == "cursos" && isset($arrayRutas[2])) {
+    $id = intval($arrayRutas[2]);
+    $cursos = new ControladorCursos();
+    $cursos->show($id);
+    return;
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($arrayRutas[1]) && $arrayRutas[1] === 'ordenes' && !isset($arrayRutas[2])) {
+    $controlador = new ControladorOrdenes();
+    $controlador->index($cliente['id']);
+    return;
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($arrayRutas[1]) && $arrayRutas[1] === 'ordenes') {
+    $datos = json_decode(file_get_contents('php://input'), true);
+    $controladorOrdenes = new ControladorOrdenes();
+    $controladorOrdenes->create($datos, $cliente);
+    return;
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($arrayRutas[1]) && $arrayRutas[1] === 'ordenes' && isset($arrayRutas[2])) {
+    $id = intval($arrayRutas[2]);
+    $controlador = new ControladorOrdenes();
+    $controlador->show($id, $cliente['id']);
+    return;
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'PUT' && isset($arrayRutas[1]) && $arrayRutas[1] === 'ordenes' && isset($arrayRutas[2])) {
+    $id = intval($arrayRutas[2]);
+    $datos = json_decode(file_get_contents('php://input'), true);
+    $controlador = new ControladorOrdenes();
+    $controlador->update($id, $datos, $cliente['id']);
+    return;
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'DELETE' && isset($arrayRutas[1]) && $arrayRutas[1] === 'ordenes' && isset($arrayRutas[2])) {
+    $id = intval($arrayRutas[2]);
+    $controlador = new ControladorOrdenes();
+    $controlador->delete($id, $cliente['id']);
+    return;
+}
+
+http_response_code(404);
+echo json_encode([
+    "status" => 404,
+    "detalle" => "Ruta no encontrada"
+]);
+?>

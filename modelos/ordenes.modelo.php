@@ -1,30 +1,21 @@
 <?php
-
 require_once "conexion.php";
 
 class ModeloOrdenes{
-
-    /*=============================================
-    MOSTRAR ÓRDENES
-    =============================================*/
-    static public function index($tablaOrdenes) {
+    static public function indexByCliente($tablaOrdenes, $id_cliente) {
         $stmt = Conexion::conectar()->prepare("
             SELECT oc.id_orden, cc.id_cliente, cc.id_curso, oc.id_metodo_pago, oc.total, oc.fecha_orden
             FROM $tablaOrdenes oc
             INNER JOIN clientes_cursos cc ON oc.id_clientes_cursos = cc.id_clientes_cursos
+            WHERE cc.id_cliente = :id_cliente
         ");
+        $stmt->bindParam(":id_cliente", $id_cliente, PDO::PARAM_INT);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    /*=============================================
-    CREAR ORDEN
-    =============================================*/
-
-
     static public function registrarVenta($tablaCursosClientes, $tablaOrdenes, $datos) {
         $conexion = Conexion::conectar();
-
         try {
             $conexion->beginTransaction();
 
@@ -70,32 +61,21 @@ class ModeloOrdenes{
             $conexion->rollBack();
             return $e->getMessage();
         }
-
-        $stmtPrecio = null;
-        $stmt1 = null;
-        $stmt2 = null;
-        $conexion = null;
     }
 
-
-    /*=============================================
-    MOSTRAR ORDEN ESPECÍFICA
-    =============================================*/
-    static public function show($tablaOrdenes, $id) {
+    static public function showByCliente($tablaOrdenes, $id, $id_cliente) {
         $stmt = Conexion::conectar()->prepare("
             SELECT oc.id_orden, cc.id_cliente, cc.id_curso, oc.id_metodo_pago, oc.total, oc.fecha_orden
             FROM $tablaOrdenes oc
             INNER JOIN clientes_cursos cc ON oc.id_clientes_cursos = cc.id_clientes_cursos
-            WHERE oc.id_orden = :id
+            WHERE oc.id_orden = :id AND cc.id_cliente = :id_cliente
         ");
         $stmt->bindParam(":id", $id, PDO::PARAM_INT);
+        $stmt->bindParam(":id_cliente", $id_cliente, PDO::PARAM_INT);
         $stmt->execute();
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
-    /*=============================================
-    ACTUALIZAR ORDEN
-    =============================================*/
     static public function update($tablaOrdenes, $id, $datos) {
         $stmt = Conexion::conectar()->prepare("
             UPDATE $tablaOrdenes
@@ -108,12 +88,10 @@ class ModeloOrdenes{
         return $stmt->execute() ? "ok" : "error";
     }
 
-    /*=============================================
-    ELIMINAR ORDEN
-    =============================================*/
     static public function delete($tablaOrdenes, $id) {
         $stmt = Conexion::conectar()->prepare("DELETE FROM $tablaOrdenes WHERE id_orden = :id");
         $stmt->bindParam(":id", $id, PDO::PARAM_INT);
         return $stmt->execute() ? "ok" : "error";
     }
 }
+?>

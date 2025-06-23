@@ -1,86 +1,81 @@
 <?php
-
 class ControladorOrdenes{
-
-    /*=============================================
-    LISTAR ÓRDENES
-    =============================================*/
-    public function index() {
-        $ordenes = ModeloOrdenes::index("ordenes_clientes");
-        echo json_encode(["status" => 200, "ordenes" => $ordenes]);
+    public function index($id_cliente) {
+        $ordenes = ModeloOrdenes::indexByCliente("ordenes_clientes", $id_cliente);
+        echo json_encode([
+            "status" => 200,
+            "ordenes" => $ordenes
+        ]);
     }
 
-
-    /*=============================================
-    CREAR ORDEN
-    =============================================*/
-    public function create($datos) {
-
-        if (!isset($_SERVER['PHP_AUTH_USER']) || !isset($_SERVER['PHP_AUTH_PW'])) {
-            echo json_encode(["status" => 401, "detalle" => "No autorizado: credenciales faltantes"]);
+    public function create($datos, $cliente) {
+        // Verificar que id_curso sea un array y tenga elementos
+        if (!isset($datos['id_curso']) || !is_array($datos['id_curso']) || count($datos['id_curso']) === 0 || !isset($datos['id_metodo_pago'])) {
+            echo json_encode([
+                "status" => 400,
+                "detalle" => "Datos incompletos o inválidos"
+            ]);
             return;
         }
 
-        $camposRequeridos = ["id_cliente", "id_curso", "id_metodo_pago"];
-        foreach ($camposRequeridos as $campo) {
-            if (!isset($datos[$campo])) {
-                echo json_encode(["status" => 400, "detalle" => "Campo '$campo' es requerido"]);
-                return;
+        $respuestas = [];
+        $errores = [];
+        
+        foreach ($datos['id_curso'] as $id_curso) {
+            $datosVenta = [
+                "id_cliente" => $cliente['id'],
+                "id_curso" => $id_curso,
+                "id_metodo_pago" => $datos["id_metodo_pago"],
+                "created_at" => date("Y-m-d H:i:s"),
+                "updated_at" => date("Y-m-d H:i:s")
+            ];
+
+            $respuesta = ModeloOrdenes::registrarVenta("clientes_cursos", "ordenes_clientes", $datosVenta);
+            
+            if ($respuesta === "ok") {
+                $respuestas[] = "Curso $id_curso registrado";
+            } else {
+                $errores[] = "Error con curso $id_curso: " . $respuesta;
             }
         }
 
-        $clientes = ModeloClientes::index("clientes");
-        $autenticado = false;
-
-        foreach ($clientes as $cliente) {
-            if (base64_encode($_SERVER['PHP_AUTH_USER'] . ":" . $_SERVER['PHP_AUTH_PW']) ==
-                base64_encode($cliente->id_cliente . ":" . $cliente->llave_secreta)) {
-                $autenticado = true;
-                break;
-            }
-        }
-
-        if (!$autenticado) {
-            echo json_encode(["status" => 403, "detalle" => "Credenciales inválidas"]);
-            return;
-        }
-
-        $datosVenta = [
-            "id_cliente" => $datos["id_cliente"],
-            "id_curso" => $datos["id_curso"],
-            "id_metodo_pago" => $datos["id_metodo_pago"],
-            "created_at" => date("Y-m-d H:i:s"),
-            "updated_at" => date("Y-m-d H:i:s")
-        ];
-
-        $respuesta = ModeloOrdenes::registrarVenta("clientes_cursos", "ordenes_clientes", $datosVenta);
-
-        if ($respuesta === "ok") {
-            echo json_encode(["status" => 201, "detalle" => "Venta registrada exitosamente"]);
+        if (count($errores)) {
+            echo json_encode([
+                "status" => 207, // Multi-status
+                "detalle" => "Algunos cursos no se registraron",
+                "exitosos" => $respuestas,
+                "errores" => $errores
+            ]);
         } else {
-            echo json_encode(["status" => 500, "detalle" => "Error al registrar la venta", "error" => $respuesta]);
+            echo json_encode([
+                "status" => 201,
+                "detalle" => "Todos los cursos registrados exitosamente",
+                "detalle_cursos" => $respuestas
+            ]);
         }
     }
 
-
-    /*=============================================
-    MOSTRAR ORDEN ESPECÍFICA
-    =============================================*/
-    public function show($id) {
-        $orden = ModeloOrdenes::show("ordenes_clientes", $id);
+    public function show($id, $id_cliente) {
+        $orden = ModeloOrdenes::showByCliente("ordenes_clientes", $id, $id_cliente);
         if ($orden) {
-            echo json_encode(["status" => 200, "orden" => $orden]);
+            echo json_encode([
+                "status" => 200,
+                "orden" => $orden
+            ]);
         } else {
-            echo json_encode(["status" => 404, "detalle" => "Orden no encontrada"]);
+            echo json_encode([
+                "status" => 404,
+                "detalle" => "Orden no encontrada"
+            ]);
         }
     }
 
-    /*=============================================
-    ACTUALIZAR ORDEN
-    =============================================*/
-     public function update($id, $datos) {
+    public function update($id, $datos, $id_cliente) {
         if (!isset($datos["id_metodo_pago"])) {
-            echo json_encode(["status" => 400, "detalle" => "Campo 'id_metodo_pago' es requerido"]);
+            echo json_encode([
+                "status" => 400,
+                "detalle" => "Campo 'id_metodo_pago' es requerido"
+            ]);
             return;
         }
 
@@ -90,22 +85,32 @@ class ControladorOrdenes{
         ]);
 
         if ($respuesta === "ok") {
-            echo json_encode(["status" => 200, "detalle" => "Orden actualizada correctamente"]);
+            echo json_encode([
+                "status" => 200,
+                "detalle" => "Orden actualizada correctamente"
+            ]);
         } else {
-            echo json_encode(["status" => 500, "detalle" => "Error al actualizar"]);
+            echo json_encode([
+                "status" => 500,
+                "detalle" => "Error al actualizar"
+            ]);
         }
     }
 
-    /*=============================================
-    ELIMINAR ORDEN
-    =============================================*/
-     public function delete($id) {
+    public function delete($id, $id_cliente) {
         $respuesta = ModeloOrdenes::delete("ordenes_clientes", $id);
 
         if ($respuesta === "ok") {
-            echo json_encode(["status" => 200, "detalle" => "Orden eliminada correctamente"]);
+            echo json_encode([
+                "status" => 200,
+                "detalle" => "Orden eliminada correctamente"
+            ]);
         } else {
-            echo json_encode(["status" => 500, "detalle" => "Error al eliminar"]);
+            echo json_encode([
+                "status" => 500,
+                "detalle" => "Error al eliminar"
+            ]);
         }
     }
 }
+?>
