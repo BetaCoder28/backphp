@@ -1,0 +1,10 @@
+Options -Indexes -MultiViews
+
+RewriteEngine On
+
+# Desactivar redirección automática de directorios
+DirectorySlash Off
+
+# Manejar TODAS las solicitudes (incluyendo OPTIONS) a través de index.php
+RewriteCond %{REQUEST_FILENAME} !-f 
+RewriteRule ^ index.php [QSA,L]
