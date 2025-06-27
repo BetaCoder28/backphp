@@ -4,15 +4,28 @@ require_once "conexion.php";
 class ModeloOrdenes{
     static public function indexByCliente($tablaOrdenes, $id_cliente) {
         $stmt = Conexion::conectar()->prepare("
-            SELECT oc.id_orden, cc.id_cliente, cc.id_curso, oc.id_metodo_pago, oc.total, oc.fecha_orden
+            SELECT 
+                oc.id_orden,
+                mp.nombre AS metodo_pago,
+                c.titulo AS curso,
+                oc.total AS monto_pagado,
+                oc.created_at AS fecha_orden,
+                CONCAT(cl.nombre, ' ', cl.apellido) AS nombre_cliente
             FROM $tablaOrdenes oc
             INNER JOIN clientes_cursos cc ON oc.id_clientes_cursos = cc.id_clientes_cursos
+            INNER JOIN cursos c ON cc.id_curso = c.id
+            INNER JOIN metodos_pago mp ON oc.id_metodo_pago = mp.id
+            INNER JOIN clientes cl ON cc.id_cliente = cl.id
             WHERE cc.id_cliente = :id_cliente
         ");
         $stmt->bindParam(":id_cliente", $id_cliente, PDO::PARAM_INT);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+
+
+
+    
 
     static public function registrarVenta($tablaCursosClientes, $tablaOrdenes, $datos) {
         $conexion = Conexion::conectar();
@@ -65,9 +78,18 @@ class ModeloOrdenes{
 
     static public function showByCliente($tablaOrdenes, $id, $id_cliente) {
         $stmt = Conexion::conectar()->prepare("
-            SELECT oc.id_orden, cc.id_cliente, cc.id_curso, oc.id_metodo_pago, oc.total, oc.fecha_orden
+            SELECT 
+                oc.id_orden,
+                mp.nombre AS metodo_pago,
+                c.titulo AS curso,
+                oc.total AS monto_pagado,
+                oc.created_at AS fecha_orden,
+                CONCAT(cl.nombre, ' ', cl.apellido) AS nombre_cliente
             FROM $tablaOrdenes oc
             INNER JOIN clientes_cursos cc ON oc.id_clientes_cursos = cc.id_clientes_cursos
+            INNER JOIN cursos c ON cc.id_curso = c.id
+            INNER JOIN metodos_pago mp ON oc.id_metodo_pago = mp.id
+            INNER JOIN clientes cl ON cc.id_cliente = cl.id
             WHERE oc.id_orden = :id AND cc.id_cliente = :id_cliente
         ");
         $stmt->bindParam(":id", $id, PDO::PARAM_INT);
@@ -93,5 +115,7 @@ class ModeloOrdenes{
         $stmt->bindParam(":id", $id, PDO::PARAM_INT);
         return $stmt->execute() ? "ok" : "error";
     }
+
+
 }
 ?>
