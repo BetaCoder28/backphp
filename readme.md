@@ -2,10 +2,14 @@
 
 Arriba las chivas chi cheñol
 
-Esau: Edité el Readme
 
-# Edición del Readme.md
+Esta es otra prueba de como hacer le github
 
-Fecha: Jueves 26 de Junio 
 
-🥴
+Este es el cambio para el md
+
+Cambio solicitado para el dia de hoy
+## 26 de Junio de 2025 
+
+Happy Hacking!
+
