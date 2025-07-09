@@ -142,6 +142,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'DELETE' && isset($arrayRutas[1]) && $arrayRu
     return;
 }
 
+////////////////////////////// YOOUTUBE ////////////////
+
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($arrayRutas[1]) && $arrayRutas[1] === 'youtube' && isset($arrayRutas[2])) {
+    $index = intval($arrayRutas[2]);
+    $controlador = new YoutubeControlador();
+    $controlador->GetVideoByIndex($index);
+    return;
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($arrayRutas[1]) && $arrayRutas[1] === 'youtube') {
+    $controlador = new YoutubeControlador();
+    $controlador->GetVideo();
+    return;
+}
+
 http_response_code(404);
 echo json_encode([
     "status" => 404,
