@@ -169,6 +169,21 @@ Crear nuevo cliente
 
     Ejemplo: /ordenes/101
 
+5. Obtener videos
+   /youtube/
+
+    
+   Obtener por index
+    /youtube/{index}
+    ejemplo : /youtube/1
+    Respuesta exitosa:
+        {
+        "status": 200,
+        "curso": "https://youtu.be/zNmDOXbTugE?si=K8Ni7pBaCPk0NSJB"
+        }
+
+    
+
 ## Respuestas de Error Comunes
     400 Bad Request: Faltan campos obligatorios
 
