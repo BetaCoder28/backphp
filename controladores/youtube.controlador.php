@@ -1,36 +1,63 @@
 <?php
 
 class YoutubeControlador {
-    static $cursosArray = [
-        'https://www.youtube.com/watch?v=iX_on3VxZzk', //red neuronal
-        'https://youtu.be/zNmDOXbTugE?si=K8Ni7pBaCPk0NSJB', //flutter
-        'https://youtu.be/TjaG7243BF0?si=Es-QcQA9wVRbX-uc',//develoteca python
-        'https://youtu.be/rLoWMU4L_qE?si=g6bnQESTIYsS3IP3',//react
-        'https://youtu.be/axHut2e84fc?si=xm6xX5njeo2iozUF'//c$
-    ];
+    static private $videosFile = __DIR__ . '/../videos.json';
+    
+    static private function getVideosArray() {
+        if (!file_exists(self::$videosFile)) {
+            return []; // archivo no encontrado
+        }
+
+        $json = file_get_contents(self::$videosFile);
+        $data = json_decode($json, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            return []; // error al parsear
+        }
+
+        if (isset($data['videos']) && is_array($data['videos'])) {
+            return $data['videos'];
+        }
+
+        return [];
+    }
+
     
     static public function GetVideo(){
+        $videosArray = self::getVideosArray();
         echo json_encode([
-
             "status" => 200,
-            "cursos" => self::$cursosArray
-            ]
-        ); 
+            "cursos" => $videosArray
+        ]); 
     }
 
     static public function GetVideoByIndex($index){
+    $videosArray = self::getVideosArray();
 
-        if(isset(self::$cursosArray[$index])) {
-            echo json_encode([
-                "status" => 200,
-                "curso" => self::$cursosArray[$index]
-            ]);
-        } else {
-            echo json_encode([
-                "status" => 404,
-                "message" => "Curso no encontrado"
-            ]);
-        }
+    if (isset($videosArray[$index]) && !empty($videosArray[$index])) {
+        $url = $videosArray[$index];
+
+        // Extraer ID de YouTube
+        preg_match('/(?:v=|\/)([0-9A-Za-z_-]{11})(?:\?|&|$)/', $url, $matches);
+        $id = $matches[1] ?? null;
+
+        echo json_encode([
+            "status" => 200,
+            "curso" => [
+                "url" => $url,
+                "id" => $id
+            ]
+        ]);
+    } else {
+        echo json_encode([
+            "status" => 404,
+            "message" => "Curso no encontrado"
+        ]);
     }
+}
+
+
+
+
 }
 ?>
